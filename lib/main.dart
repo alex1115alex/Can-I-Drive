@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+//import 'package:async/async.dart';
+import 'dart:async';
+//import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(new DrinkApp());
 
@@ -20,9 +23,15 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
 
   double getBAC() //returns the bac from this drink
   {
-    double weight = 452.592; //my weight in grams
-    double genderConst = .68; //.55 for females
-    double bac = ((abv * volume * .789) / (weight * genderConst)) / 100;
+    //weight and genderConst were here
+
+    //determine how many hours have passed since drinking
+    var now = new DateTime.now();
+    Duration diff = now.difference(time);
+    double hoursPassed = diff.inMinutes / 60;
+
+    //calculate BAC
+    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * .015);
     print(bac);
     return bac;
   }
@@ -34,10 +43,17 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
 }
 
 List<Drink> drinksList = new List<Drink>(); //drinksList is a List that stores Drink objects
+List<Drink> presetDrinksList = new List<Drink>(); //presetDrinksList contains saved preset drinks
 
 String drinkName; //Stores the drinkName
 String drinkABV; //Stores the drinkABV
 String drinkVolume; //Stores the drinkVolume
+
+double threshold = 0; //default threshold = bac of 0
+double weight = 88450.5; //my weight in grams
+double genderConst = .68; //.68 for males, .55 for females
+
+DateTime soberTime = new DateTime.now();
 
 class DrinkApp extends StatefulWidget{
   @override
@@ -46,14 +62,28 @@ class DrinkApp extends StatefulWidget{
 
 class _DrinkAppState extends State<DrinkApp> {
 
-  String _outputBAC = "";
-  String _timeString = "";
+  //System for keeping the timer up-to-date. Thanks Gunter from Stackoverflow.
+  Timer timer;
+  @override
+  void initState() {
+    super.initState();
+    timer = Timer.periodic(Duration(seconds: 1), (Timer t) => updateClock());
+  }
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
 
-  void addDrink()
-  {
-    //add drink to array
-    
-    if(drinkName == null || drinkABV == null || drinkVolume == null) //make sure all fields are filled in
+  //default messages
+  String _outputBAC = "0%";
+  String _timeString = "You're sober, mate";
+
+  //add custom drink to array
+  void addDrink() 
+  {  
+    //make sure all fields are filled in
+    if(drinkName == null || drinkABV == null || drinkVolume == null) 
     {
       return(null);
     }
@@ -67,26 +97,61 @@ class _DrinkAppState extends State<DrinkApp> {
     updateInfo();
   }
 
+  //like updateInfo
+  void updateClock()
+  {
+   //check the timer
+
+    //if we've already passed soberTime
+    if(DateTime.now().isAfter(soberTime))
+    {
+      print("WE ARE SOBER");
+
+      //set the output
+      setState(() => _outputBAC = "0%");
+      setState(() => _timeString = "You're sober, mate");
+    }
+    else //if soberTime is yet to come thus we're hammered
+    {
+      print("NOT SOBER");
+
+      //set clock
+      Duration dur = soberTime.difference(DateTime.now());
+      setState(() => _timeString = dur.toString().substring(0,7));
+    }
+  }
+
   void updateInfo()
   {
+    
+    //determine the totalBAC (sum of all Drink's BACs)
     double totalBAC = 0;
     for(int i = 0; i < drinksList.length; i++)
     {
       totalBAC += drinksList[i].getBAC();
     }
 
-    if(totalBAC > 0)
+
+    if(totalBAC > threshold) //If our BAC is greater than the threshold, print BAC information
     {
-      setState(() => _outputBAC = totalBAC.toStringAsFixed(3));
+      //update the percentage immediately
+      setState(() => _outputBAC = totalBAC.toStringAsFixed(5) + "%");
+      
 
-      String hoursTillDrive = (totalBAC/.015).toStringAsFixed(2);
+      //update soberTime
+      int mins = (((totalBAC-threshold)/.015)*60).round();
+      soberTime = DateTime.now().add(Duration(minutes: mins));
 
-      setState(() => _timeString = "You can drive in $hoursTillDrive hours!");
+      updateClock();
     }
-    else //totalBac == 0
+    else //totalBAC is under threshold
     {
-      setState(() => _outputBAC = "0%");
-      setState(() => _timeString = "You're sober, mate");
+      //set outputBAC to empty string
+      //setState(() => _outputBAC = "");
+      updateClock();
+
+      //update soberTime to now
+      soberTime = DateTime.now();
     }
   }
 
@@ -97,6 +162,7 @@ class _DrinkAppState extends State<DrinkApp> {
       home: new Scaffold(
         appBar: new AppBar(
           title: new Text("Can I Drive?"),
+          backgroundColor: Color(0xffFEDBD0), 
         ),
         drawer: Drawer(
           child: ListView.builder(
@@ -125,7 +191,7 @@ class _DrinkAppState extends State<DrinkApp> {
         ),
         body: Container(
           alignment: Alignment.center,
-          color: const Color(0xffFEDBD0),
+          color: const Color(0xfffffbfa),
           child: Column( //Main column with data on top and menu on bottom
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[ 
@@ -133,13 +199,14 @@ class _DrinkAppState extends State<DrinkApp> {
                 child: Column(
                   children: <Widget>[
                     Text(
-                      "$_outputBAC%",
+                      "$_outputBAC",
                       style: TextStyle(fontSize: 40),
                     ),
                     Text(
                       "$_timeString",
                       style: TextStyle(fontSize: 25),
-                      ),
+                    ),
+
                   ],
                 ),
               ),
@@ -152,11 +219,12 @@ class _DrinkAppState extends State<DrinkApp> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: <Widget>[
 
-                        Text("ENTER DRINK \n"),
+                        //Text("ENTER DRINK \n"),
 
                         Container( //Drink name entry
                           height: 45,
                           width: 120,
+                          padding: EdgeInsets.only(bottom: 20.0),
                           child: TextField(
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
@@ -174,12 +242,13 @@ class _DrinkAppState extends State<DrinkApp> {
                         Container( //Drink ABV entry
                           height: 45,
                           width: 120,
+                          padding: EdgeInsets.only(bottom: 20.0),
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: "ABV",
+                              labelText: "ABV",
                               border: OutlineInputBorder(),
                             ),
-                            maxLength: 4,
+                            //maxLength: 4,
                             textAlign: TextAlign.center,
                             keyboardType: TextInputType.numberWithOptions(decimal: true),
                             onChanged: (text){
@@ -191,10 +260,11 @@ class _DrinkAppState extends State<DrinkApp> {
                         Container( //Drink Volume entry
                           height: 45,
                           width: 120,
+                          padding: EdgeInsets.only(bottom: 20.0),
                           child: TextField(
                             decoration: InputDecoration(
-                              hintText: "Volume",
-                              //border: OutlineInputBorder(),
+                              labelText: "Volume",
+                              border: OutlineInputBorder(),
                             ),
                             //maxLength: 4,
                             textAlign: TextAlign.center,
