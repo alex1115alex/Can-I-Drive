@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 //import 'package:async/async.dart';
 import 'dart:async';
-
+import 'dart:convert' show json;
 import 'package:flutter/rendering.dart';
-//import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 //import 'package:carousel_pro/carousel_pro.dart';
 
 void main() => runApp(new DrinkApp());
-
-
 
 class Drink{ //a drink stores a name, ABV, volume, and time drank
   String name;
   double abv;
   double volume;
   DateTime time;
+  String timeString;
 
   Drink(String nameInput, double abvInput, double volumeInput, DateTime timeInput)
   {
@@ -22,7 +21,35 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     abv = abvInput;
     volume = volumeInput;
     time = timeInput;
+    timeString = time.toString();
   }
+
+  Drink.fromJson(Map<String, dynamic> m)
+  {
+    name = m['mName'];
+    abv = m['mAbv'];
+    volume = m['mVolume'];
+    timeString = m['mTime'];
+    print("PARSE");
+    print("mtime:");
+    print(m['mTime']);
+    print(timeString);
+    time = DateTime.parse(timeString);
+    print("/PARSE");
+  }
+
+  String get mName => name;
+  double get mAbv => abv;
+  double get mVolume => volume;
+  String get mTime => time.toString(); //convert time (type DateTime) toString() first 
+
+  Map<String, dynamic> toJson() =>
+  {
+    'mName': name,
+    'mAbv': abv,
+    'mVolume': volume,
+    'mTime': timeString,
+  };
 
   double getBAC() //returns the bac from this drink
   {
@@ -32,10 +59,11 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     var now = new DateTime.now();
     Duration diff = now.difference(time);
     double hoursPassed = diff.inMinutes / 60;
-    print("hrs passed: $hoursPassed");
+    
     //calculate BAC
-    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * .015);
-    print(bac);
+    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * (.015 / drinksList.length));
+    
+    //return BAC
     return bac;
   }
 
@@ -75,8 +103,13 @@ class _DrinkAppState extends State<DrinkApp> {
   //System for keeping the timer up-to-date. Thanks Gunter from Stackoverflow.
   Timer timer;
   @override
-  void initState() {
+  void initState() { //initState run on startup
     super.initState();
+
+    //load the save data
+    loadData();
+
+    //setup the timer
     timer = Timer.periodic(Duration(seconds: 1), (Timer t) => updateClock());
   }
   @override
@@ -88,6 +121,7 @@ class _DrinkAppState extends State<DrinkApp> {
   //default messages
   String _outputBAC = "0%";
   String _timeString = "You're sober, mate";
+  String _drinksString = "";
 
   //add custom drink to array
   void addDrink() 
@@ -139,16 +173,17 @@ class _DrinkAppState extends State<DrinkApp> {
     //if we've already passed soberTime
     if(DateTime.now().isAfter(soberTime))
     {
-      print("WE ARE SOBER");
+      //print("WE ARE SOBER");
 
       //set the output
       setState(() => _outputBAC = "0%");
       setState(() => _timeString = "You're sober, mate");
       setState(() => titleBarText = "");
+      setState(() => _drinksString = "");
     }
     else //if soberTime is yet to come thus we're hammered
     {
-      print("NOT SOBER");
+      //print("NOT SOBER");
 
       //set clock
       Duration dur = soberTime.difference(DateTime.now());
@@ -162,7 +197,16 @@ class _DrinkAppState extends State<DrinkApp> {
       }
 
       setState(() => _outputBAC = totalBAC.toStringAsFixed(3) + "%");
+      if(drinksList.length == 1)
+      {
+        setState(() => _drinksString = "(1 drink)");
+      }
+      else //drinksList is greater than 1
+      {
+        setState(() => _drinksString = "(" + drinksList.length.toString() + " drinks)");
+      }
     }
+
   }
 
   void updateInfo()
@@ -205,8 +249,44 @@ class _DrinkAppState extends State<DrinkApp> {
 
       updateClock();
     }
+
+    //save data
+    saveData();
+
   }
 
+  final String drinksListKey = 'com.alexisraelov.canidrive.activeDrinks';
+  final String favoritesKey = 'com.alexisraelov.canidrive.favorites'; // maybe use your domain + appname
+
+    void saveData() async
+    {
+      print("SAVING DATA");
+      SharedPreferences sp = await SharedPreferences.getInstance();
+      sp.setString(drinksListKey, json.encode(drinksList));
+
+      print("FAVS");
+      sp.setString(favoritesKey, json.encode(presetDrinksList));
+      print("DATA SAVED");
+    }
+
+    void loadData() async
+    {
+      print("LOADING DATA");
+      SharedPreferences sp = await SharedPreferences.getInstance();
+      json
+         .decode(sp.getString(drinksListKey))
+         .forEach((map) => drinksList.add(new Drink.fromJson(map)));
+
+      json
+         .decode(sp.getString(favoritesKey))
+         .forEach((map) => presetDrinksList.add(new Drink.fromJson(map)));
+
+      updateInfo();
+      print("DATA LOADED");
+    }
+
+
+  //VISUAL ASSEMBLY
   @override
   Widget build(BuildContext context) {
    return new MaterialApp(
@@ -229,16 +309,16 @@ class _DrinkAppState extends State<DrinkApp> {
                   onDismissed: (direction){
 
                     //when swiped, remove the drink
-                    drinksList.removeAt(index);
+                    setState(() => drinksList.removeAt(index));
                     
                     //check for updates
                     updateInfo();
 
-                    Scaffold.of(context).showSnackBar(
-                      new SnackBar(
-                        content: new Text("Drink removed"),
-                      ),
-                    );
+                    //Scaffold.of(context).showSnackBar(
+                    //  new SnackBar(
+                    //    content: new Text("Drink removed"),
+                    //  ),
+                    //); //scaffoldofcontext
                   },
                   background: new Container(
                     color: Colors.red,
@@ -274,7 +354,10 @@ class _DrinkAppState extends State<DrinkApp> {
                       "$_timeString",
                       style: TextStyle(fontSize: 25),
                     ),
-
+                    Text(
+                      "$_drinksString",
+                      style: TextStyle(fontSize: 20),
+                    ),
                   ],
                 ),
               ),
@@ -354,37 +437,64 @@ class _DrinkAppState extends State<DrinkApp> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           
                           children: <Widget>[
-                          Container( //Add drink button
-                            width: 200,
-                            height: 40,
-                            child: RaisedButton(
-                              child: Text("Add Drink"),
-                              color: const Color(0xffFEEAE6),
-                              elevation: 2.0,
-                              onPressed: ()
-                              {
-                                addDrink();
-                              },
+                            Container( //Add drink button
+                              width: 200,
+                              height: 40,
+                              child: RaisedButton(
+                                child: Text("Add Drink"),
+                                color: const Color(0xffFEEAE6),
+                                elevation: 2.0,
+                                onPressed: ()
+                                {
+                                  addDrink();
+                                },
+                              ),
                             ),
-                          ),
 
-                          Container( //Favorite drink button
-                            width: 40,
-                            height: 40,
-                            child: RaisedButton(
-                              padding: EdgeInsets.all(9),
-                              child: Icon(Icons.star),
-                              color: const Color(0xfff9f923),
-                              elevation: 2.0,
-                              onPressed: ()
-                              {
-                                saveDrink();
-                              },
+                            Container( //Favorite drink button
+                              width: 40,
+                              height: 40,
+                              child: RaisedButton(
+                                padding: EdgeInsets.all(9),
+                                child: Icon(Icons.star),
+                                color: const Color(0xfff9f923),
+                                elevation: 2.0,
+                                onPressed: ()
+                                {
+                                  saveDrink();
+                                },
+                              ),
                             ),
-                          ),
 
                         ],),
                         
+                        Container( //A SAVE button
+                              width: 200,
+                              height: 40,
+                              child: RaisedButton(
+                                child: Text("SAVE"),
+                                color: const Color(0xffFEEAE6),
+                                elevation: 2.0,
+                                onPressed: ()
+                                {
+                                  saveData();
+                                },
+                              ),
+                            ),
+
+                            Container( //A SAVE button
+                              width: 200,
+                              height: 40,
+                              child: RaisedButton(
+                                child: Text("LODE"),
+                                color: const Color(0xffFEEAE6),
+                                elevation: 2.0,
+                                onPressed: ()
+                                {
+                                  loadData();
+                                },
+                              ),
+                            ),
 
                       ],
                     ),
@@ -392,20 +502,23 @@ class _DrinkAppState extends State<DrinkApp> {
 
                     Container(
                       //width: 540,
-                      child:ListView.builder(
-                        itemCount: presetDrinksList.length,
-                        itemBuilder: (BuildContext ctxt, int index) {
-                          return ListTile(
-                            title: Text(presetDrinksList[index].getPresetInfo()),
-                            onTap: (){
-                              addDrinkFromPresets(index);
-                            },
+                      child:ListView.separated(
+                        separatorBuilder: (context, index) => Divider(
+                        color: Colors.black,
+                      ),
+                      itemCount: presetDrinksList.length,
+                      itemBuilder: (BuildContext ctxt, int index) {
+                        return ListTile(
+                          title: Text(presetDrinksList[index].getPresetInfo()),
+                          onTap: (){
+                            addDrinkFromPresets(index);
+                          },
 
-                            onLongPress: (){
-                              presetDrinksList.removeAt(index);
-                            },
-                          );
-                        },
+                          onLongPress: (){
+                            presetDrinksList.removeAt(index);
+                          },
+                        );
+                      },
                       ),
                     ),
                   ],
