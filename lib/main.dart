@@ -6,7 +6,14 @@ import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 //import 'package:carousel_pro/carousel_pro.dart';
 
-void main() => runApp(new DrinkApp());
+//void main() => runApp(new DrinkApp());
+
+void main()
+{
+  runApp(MaterialApp(
+    home: DrinkApp(),
+  ));
+}
 
 class Drink{ //a drink stores a name, ABV, volume, and time drank
   String name;
@@ -30,12 +37,7 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     abv = m['mAbv'];
     volume = m['mVolume'];
     timeString = m['mTime'];
-    print("PARSE");
-    print("mtime:");
-    print(m['mTime']);
-    print(timeString);
     time = DateTime.parse(timeString);
-    print("/PARSE");
   }
 
   String get mName => name;
@@ -62,7 +64,7 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     
     //calculate BAC
     double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * (.015 / drinksList.length));
-    
+
     //return BAC
     return bac;
   }
@@ -87,11 +89,129 @@ String drinkVolume; //Stores the drinkVolume
 
 double threshold = 0; //default threshold = bac of 0
 double weight = 88450.5; //my weight in grams
+double weightInLbs = 130; //my weight in lbs. We only use the variable to display the weight in Lbs.
 double genderConst = .68; //.68 for males, .55 for females
 
 String titleBarText = "";
 
 DateTime soberTime = new DateTime.now();
+
+class SettingsPage extends MaterialPageRoute<Null>
+{
+  SettingsPage() : super(builder: (BuildContext ctx) {
+    return Scaffold(
+      resizeToAvoidBottomPadding: false,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: Text("Settings"),
+        backgroundColor: Color(0xff983351),
+        elevation: 1.0,
+        /*
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.close),
+            onPressed: (){
+              Navigator.pop(ctx); 
+            },
+          ),
+        ],
+        */
+      ),
+      body: Center(
+        child: Container(
+          child: Column( //LEFT MENU COLUMN (TEXT FIELDS AND BUTTON)
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+
+              //Text("ENTER DRINK \n"),
+
+              Container( //Weight entry
+                height: 55,
+                width: 120,
+                //padding: EdgeInsets.all(20.0),
+                child: TextField(
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: "Weight (lbs)",
+                    hintText: "$weightInLbs",
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: false),
+                  textAlign: TextAlign.center,
+                  onChanged: (text){
+                    weight = double.parse(text) * 453.592; //convert input from lbs to grams first
+                    weightInLbs = double.parse(text);
+                  },
+                ),
+              ),
+
+              Column(children: <Widget>[
+                Text(
+                  "This should be 0.08 in the majority of the USA, or 0.0 if you're under 21.\nAlways check your local laws.\n",
+                  textAlign: TextAlign.center,
+                ),
+
+                Container( //BAC threshold entry
+                  height: 55,
+                  width: 180,
+                  //padding: EdgeInsets.all(20.0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      labelText: "BAC Threshold",
+                      hintText: "$threshold", 
+                      border: OutlineInputBorder(),
+                    ),
+                    //maxLength: 4,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (text){
+                      threshold = double.parse(text);
+                    },
+                  ),
+                ),
+              ],),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+
+                  RaisedButton( //Select MALE as gender!
+                    //icon: Icon(Icons.arrow_left),
+                    color: Colors.blueGrey,
+                    child: const Text("Male"),
+                    onPressed: (){
+                      genderConst = .68;
+                    },
+                  ),
+
+                  RaisedButton( //Select FEMALE as gender!
+                      //icon: Icon(Icons.arrow_right),
+                      color: Colors.pinkAccent,
+                      child: const Text("Female"),
+                      onPressed: (){
+                        genderConst = .55;
+                      },
+                    ),
+                ],
+              ),
+
+              RaisedButton( //RESET DRINKS LIST!
+                    //icon: Icon(Icons.arrow_left),
+                    color: Colors.redAccent,
+                    child: const Text("Reset drinks list"),
+                    onPressed: (){
+                      drinksList.clear();
+                      presetDrinksList.clear();
+                    },
+                  ),
+
+            ],
+          ),
+        ),
+      ),
+    );
+  });
+}
 
 class DrinkApp extends StatefulWidget{
   @override
@@ -191,9 +311,25 @@ class _DrinkAppState extends State<DrinkApp> {
 
       //determine the totalBAC (sum of all Drink's BACs)
       double totalBAC = 0;
+
+      //for each current drink
       for(int i = 0; i < drinksList.length; i++)
       {
-        totalBAC += drinksList[i].getBAC();
+        //calculate the BAC of this drink
+        double thisBAC = drinksList[i].getBAC();
+
+        //check if the BAC is <= 0. If it is, we need to remove it from the list of drinks!
+        if(thisBAC <= 0)
+        {
+          //print("REMOVE DRINK");
+          drinksList.removeAt(i);
+          i--; //decrement i so we don't skip the next drink
+        }
+        else //if the BAC is > 0, we need to add it to the total
+        {
+          //print("ADD DRINK");
+          totalBAC += thisBAC; 
+        }
       }
 
       setState(() => _outputBAC = totalBAC.toStringAsFixed(3) + "%");
@@ -217,6 +353,7 @@ class _DrinkAppState extends State<DrinkApp> {
     for(int i = 0; i < drinksList.length; i++)
     {
       totalBAC += drinksList[i].getBAC();
+      print("totalbac: $totalBAC");
     }
     
 
@@ -261,11 +398,20 @@ class _DrinkAppState extends State<DrinkApp> {
     void saveData() async
     {
       print("SAVING DATA");
+      //initialize sharedprefs object
       SharedPreferences sp = await SharedPreferences.getInstance();
+      
+      //save the drinksList array
       sp.setString(drinksListKey, json.encode(drinksList));
 
-      print("FAVS");
+      //save the presetDrinksList array
       sp.setString(favoritesKey, json.encode(presetDrinksList));
+
+      //save weight, threshold, sex
+      sp.setDouble('threshold', threshold);
+      sp.setDouble('weight', weight);
+      sp.setDouble('genderConst', genderConst);
+
       print("DATA SAVED");
     }
 
@@ -273,15 +419,26 @@ class _DrinkAppState extends State<DrinkApp> {
     {
       print("LOADING DATA");
       SharedPreferences sp = await SharedPreferences.getInstance();
+      
+      //load drinksList
       json
          .decode(sp.getString(drinksListKey))
          .forEach((map) => drinksList.add(new Drink.fromJson(map)));
 
+      //load presetDrinksList
       json
          .decode(sp.getString(favoritesKey))
          .forEach((map) => presetDrinksList.add(new Drink.fromJson(map)));
 
+      //load weight, threshold, sex
+      threshold = double.parse(sp.getDouble('threshold').toStringAsFixed(2));
+      weight = double.parse(sp.getDouble('weight').toStringAsFixed(1));
+      weightInLbs = weight / 453.592;
+      genderConst = sp.getDouble('genderConst');
+
+      //update the info
       updateInfo();
+
       print("DATA LOADED");
     }
 
@@ -295,6 +452,15 @@ class _DrinkAppState extends State<DrinkApp> {
         appBar: new AppBar(
           title: new Text("Can I Drive? $titleBarText"),
           backgroundColor: Color(0xff983351), 
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(Icons.settings),
+              color: Colors.white,
+              onPressed: (){
+                Navigator.push(context, SettingsPage());
+              },
+            ),
+          ],
         ),
         drawer: Drawer(
           child: 
@@ -313,12 +479,6 @@ class _DrinkAppState extends State<DrinkApp> {
                     
                     //check for updates
                     updateInfo();
-
-                    //Scaffold.of(context).showSnackBar(
-                    //  new SnackBar(
-                    //    content: new Text("Drink removed"),
-                    //  ),
-                    //); //scaffoldofcontext
                   },
                   background: new Container(
                     color: Colors.red,
@@ -344,6 +504,7 @@ class _DrinkAppState extends State<DrinkApp> {
             children: <Widget>[ 
 
               Container( //INFO CONTAINER
+                height: size.height / 5,
                 child: Column(
                   children: <Widget>[
                     Text(
@@ -363,29 +524,24 @@ class _DrinkAppState extends State<DrinkApp> {
               ),
 
               Container( //MENU CONTAINER
-                height: size.height/3,
-                width: size.width,
+                height: size.height / 2,
+                //width: size.width,
                 child: PageView(
                   scrollDirection: Axis.horizontal,
                   //mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: <Widget>[
                     Container(
-                      //width: 540,
-                      child:
-                    Column( //LEFT MENU COLUMN (TEXT FIELDS AND BUTTON)
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      child: Column( //LEFT MENU Drink Input (TEXT FIELDS AND BUTTON)
+                      //mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: <Widget>[
-
-                        //Text("ENTER DRINK \n"),
-
                         Container( //Drink name entry
                           height: 45,
                           width: 120,
-                          padding: EdgeInsets.only(bottom: 20.0),
+                          //padding: EdgeInsets.only(bottom: 0.0),
                           child: TextField(
                             textCapitalization: TextCapitalization.words,
                             decoration: InputDecoration(
-                              labelText: "Name",
+                              labelText: "Drink name",
                               border: OutlineInputBorder(),
                             ),
                             //maxLength: 12,
@@ -399,7 +555,7 @@ class _DrinkAppState extends State<DrinkApp> {
                         Container( //Drink ABV entry
                           height: 45,
                           width: 120,
-                          padding: EdgeInsets.only(bottom: 20.0),
+                          //padding: EdgeInsets.all(20.0),
                           child: TextField(
                             decoration: InputDecoration(
                               labelText: "ABV",
@@ -417,7 +573,7 @@ class _DrinkAppState extends State<DrinkApp> {
                         Container( //Drink Volume entry
                           height: 45,
                           width: 120,
-                          padding: EdgeInsets.only(bottom: 20.0),
+                          //padding: EdgeInsets.all(20.0),
                           child: TextField(
                             decoration: InputDecoration(
                               labelText: "Volume",
@@ -465,47 +621,21 @@ class _DrinkAppState extends State<DrinkApp> {
                                 },
                               ),
                             ),
-
                         ],),
-                        
-                        Container( //A SAVE button
-                              width: 200,
-                              height: 40,
-                              child: RaisedButton(
-                                child: Text("SAVE"),
-                                color: const Color(0xffFEEAE6),
-                                elevation: 2.0,
-                                onPressed: ()
-                                {
-                                  saveData();
-                                },
-                              ),
-                            ),
 
-                            Container( //A SAVE button
-                              width: 200,
-                              height: 40,
-                              child: RaisedButton(
-                                child: Text("LODE"),
-                                color: const Color(0xffFEEAE6),
-                                elevation: 2.0,
-                                onPressed: ()
-                                {
-                                  loadData();
-                                },
-                              ),
-                            ),
+                        Text("Swipe for favorites →"),
 
                       ],
                     ),
                     ),
 
-                    Container(
+                    Container( //RIGHT MENU Drink List (holds preset Drinks)
                       //width: 540,
                       child:ListView.separated(
                         separatorBuilder: (context, index) => Divider(
                         color: Colors.black,
                       ),
+                     
                       itemCount: presetDrinksList.length,
                       itemBuilder: (BuildContext ctxt, int index) {
                         return ListTile(
