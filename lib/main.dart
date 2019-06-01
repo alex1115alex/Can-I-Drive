@@ -5,6 +5,7 @@ import 'dart:convert' show json;
 import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 //import 'package:carousel_pro/carousel_pro.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 //void main() => runApp(new DrinkApp());
 
@@ -63,7 +64,7 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     double hoursPassed = diff.inMinutes / 60;
     
     //calculate BAC
-    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * (.015 / drinksList.length));
+    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * (.015));
 
     //return BAC
     return bac;
@@ -91,6 +92,8 @@ double threshold = 0; //default threshold = bac of 0
 double weight = 88450.5; //my weight in grams
 double weightInLbs = 130; //my weight in lbs. We only use the variable to display the weight in Lbs.
 double genderConst = .68; //.68 for males, .55 for females
+
+bool displayedNotification = true;
 
 String titleBarText = "";
 
@@ -220,11 +223,26 @@ class DrinkApp extends StatefulWidget{
 
 class _DrinkAppState extends State<DrinkApp> {
 
-  //System for keeping the timer up-to-date. Thanks Gunter from Stackoverflow.
+  //Timer for keeping the timer up-to-date. Thanks Gunter from Stackoverflow.
   Timer timer;
+  
+  //Notification thing
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   @override
   void initState() { //initState run on startup
     super.initState();
+
+    displayedNotification = true;
+
+    var initializationSettingsAndroid = new AndroidInitializationSettings('@mipmap/ic_launcher');
+    var initializationSettingsIOS = new IOSInitializationSettings();
+    var initializationSettings = new InitializationSettings(initializationSettingsAndroid, initializationSettingsIOS);
+    flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
+
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);//, selectNotification: onSelectNotification);
+
+    //scheduleNotification();
 
     //load the save data
     loadData();
@@ -242,6 +260,23 @@ class _DrinkAppState extends State<DrinkApp> {
   String _outputBAC = "0%";
   String _timeString = "You're sober, mate";
   String _drinksString = "";
+
+  //onselectnotification
+  Future onSelectNotification(String payload) async{
+    print("Notification payload: $payload");
+  }
+
+  Future scheduleNotification() async{
+   var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    'your channel id', 'your channel name', 'your channel description',
+    importance: Importance.Max, priority: Priority.High, ticker: 'ticker');
+var iOSPlatformChannelSpecifics = IOSNotificationDetails();
+var platformChannelSpecifics = NotificationDetails(
+    androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+await flutterLocalNotificationsPlugin.show(
+    0, 'You can drive!', 'Your BAC has hit $threshold.', platformChannelSpecifics,
+    payload: 'item x');
+  }
 
   //add custom drink to array
   void addDrink() 
@@ -300,10 +335,18 @@ class _DrinkAppState extends State<DrinkApp> {
       setState(() => _timeString = "You're sober, mate");
       setState(() => titleBarText = "");
       setState(() => _drinksString = "");
+
+      if(!displayedNotification)
+      {
+        displayedNotification = true;
+        print("NOTIFICATION");
+        scheduleNotification();
+      }
     }
     else //if soberTime is yet to come thus we're hammered
     {
       //print("NOT SOBER");
+      displayedNotification = false;
 
       //set clock
       Duration dur = soberTime.difference(DateTime.now());
@@ -333,6 +376,8 @@ class _DrinkAppState extends State<DrinkApp> {
       }
 
       setState(() => _outputBAC = totalBAC.toStringAsFixed(3) + "%");
+
+      //set the '(# drinks)' text
       if(drinksList.length == 1)
       {
         setState(() => _drinksString = "(1 drink)");
@@ -471,12 +516,16 @@ class _DrinkAppState extends State<DrinkApp> {
               itemCount: drinksList.length,
               itemBuilder: (BuildContext ctxt, int index) {
                 return new Dismissible(
-                  key: new Key(drinksList[index].getInfo()),
+                  key: new Key(drinksList[index].getInfo() + drinksList.length.toString()),
                   onDismissed: (direction){
 
                     //when swiped, remove the drink
-                    setState(() => drinksList.removeAt(index));
-                    
+                    //setState(() => drinksList.removeAt(index));
+                    setState(() {
+                      drinksList.removeAt(index);
+                      displayedNotification = true;
+                    });
+
                     //check for updates
                     updateInfo();
                   },
