@@ -9,22 +9,22 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 //void main() => runApp(new DrinkApp());
 
-void main()
-{
+void main() {
   runApp(MaterialApp(
     home: DrinkApp(),
   ));
 }
 
-class Drink{ //a drink stores a name, ABV, volume, and time drank
+class Drink {
+  //a drink stores a name, ABV, volume, and time drank
   String name;
   double abv;
   double volume;
   DateTime time;
   String timeString;
 
-  Drink(String nameInput, double abvInput, double volumeInput, DateTime timeInput)
-  {
+  Drink(String nameInput, double abvInput, double volumeInput,
+      DateTime timeInput) {
     name = nameInput;
     abv = abvInput;
     volume = volumeInput;
@@ -32,8 +32,7 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     timeString = time.toString();
   }
 
-  Drink.fromJson(Map<String, dynamic> m)
-  {
+  Drink.fromJson(Map<String, dynamic> m) {
     name = m['mName'];
     abv = m['mAbv'];
     volume = m['mVolume'];
@@ -44,15 +43,15 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
   String get mName => name;
   double get mAbv => abv;
   double get mVolume => volume;
-  String get mTime => time.toString(); //convert time (type DateTime) toString() first 
+  String get mTime =>
+      time.toString(); //convert time (type DateTime) toString() first
 
-  Map<String, dynamic> toJson() =>
-  {
-    'mName': name,
-    'mAbv': abv,
-    'mVolume': volume,
-    'mTime': timeString,
-  };
+  Map<String, dynamic> toJson() => {
+        'mName': name,
+        'mAbv': abv,
+        'mVolume': volume,
+        'mTime': timeString,
+      };
 
   double getBAC() //returns the bac from this drink
   {
@@ -62,36 +61,39 @@ class Drink{ //a drink stores a name, ABV, volume, and time drank
     var now = new DateTime.now();
     Duration diff = now.difference(time);
     double hoursPassed = diff.inMinutes / 60;
-    
+
     //calculate BAC
-    double bac = (((abv * volume * .789) / (weight * genderConst))  ) - (hoursPassed * (.015));
+    double bac = (((abv * volume * .789) / (weight * genderConst))) -
+        (hoursPassed * (.015));
 
     //return BAC
     return bac;
   }
 
-  String getInfo()
-  {
-    return "(" + time.toString().substring(11,16) + ") $name:\n $abv% - $volume ml";
+  String getInfo() {
+    return "(" +
+        time.toString().substring(11, 16) +
+        ") $name:\n $abv% - $volume ml";
   }
 
-  String getPresetInfo()
-  {
+  String getPresetInfo() {
     return "$name\n$abv% - $volume ml";
   }
 }
 
-List<Drink> drinksList = new List<Drink>(); //drinksList is a List that stores Drink objects
-List<Drink> presetDrinksList = new List<Drink>(); //presetDrinksList contains saved preset drinks
+List<Drink> drinksList = []; //drinksList is a List that stores Drink objects
+List<Drink> presetDrinksList =
+    []; //presetDrinksList contains saved preset drinks
 
 String drinkName; //Stores the drinkName
 String drinkABV; //Stores the drinkABV
 String drinkVolume; //Stores the drinkVolume
 
 double threshold = 0; //default threshold = bac of 0
-double weight = 88450.5; //my weight in grams
-double weightInLbs = 130; //my weight in lbs. We only use the variable to display the weight in Lbs.
-double genderConst = .68; //.68 for males, .55 for females
+double weight; //my weight in grams
+double
+    weightInLbs; //my weight in lbs. We only use the variable to display the weight in Lbs.
+double genderConst; //.68 for males, .55 for females
 
 bool displayedNotification = true;
 
@@ -99,17 +101,24 @@ String titleBarText = "";
 
 DateTime soberTime = new DateTime.now();
 
-class SettingsPage extends MaterialPageRoute<Null>
-{
-  SettingsPage() : super(builder: (BuildContext ctx) {
-    return Scaffold(
-      resizeToAvoidBottomPadding: false,
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text("Settings"),
-        backgroundColor: Color(0xff983351),
-        elevation: 1.0,
-        /*
+class MyAppBar extends AppBar {
+  //final appBarHeight = MyAppBar().preferredSize.height;
+}
+
+final double appBarHeight = MyAppBar().preferredSize.height;
+
+class SettingsPage extends MaterialPageRoute<Null> {
+  SettingsPage()
+      : super(builder: (BuildContext ctx) {
+          return Scaffold(
+            resizeToAvoidBottomPadding: false,
+            resizeToAvoidBottomInset: false,
+            backgroundColor: Colors.transparent,
+            appBar: AppBar(
+              title: Text("Settings"),
+              backgroundColor: Color(0xff983351),
+              elevation: 1.0,
+              /*
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.close),
@@ -119,128 +128,150 @@ class SettingsPage extends MaterialPageRoute<Null>
           ),
         ],
         */
-      ),
-      body: Center(
-        child: Container(
-          child: Column( //LEFT MENU COLUMN (TEXT FIELDS AND BUTTON)
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-
-              //Text("ENTER DRINK \n"),
-
-              Container( //Weight entry
-                height: 55,
-                width: 120,
-                //padding: EdgeInsets.all(20.0),
-                child: TextField(
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: "Weight (lbs)",
-                    hintText: "$weightInLbs",
-                    border: OutlineInputBorder(),
+            ),
+            body: Center(
+              child: Container(
+                decoration: new BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/background.png"),
+                    fit: BoxFit.cover,
                   ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: false),
-                  textAlign: TextAlign.center,
-                  onChanged: (text){
-                    weight = double.parse(text) * 453.592; //convert input from lbs to grams first
-                    weightInLbs = double.parse(text);
-                  },
                 ),
-              ),
+                child: Column(
+                  //LEFT MENU COLUMN (TEXT FIELDS AND BUTTON)
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: <Widget>[
+                    //Text("ENTER DRINK \n"),
 
-              Column(children: <Widget>[
-                Text(
-                  "This should be 0.08 in the majority of the USA, or 0.0 if you're under 21.\nAlways check your local laws.\n",
-                  textAlign: TextAlign.center,
-                ),
-
-                Container( //BAC threshold entry
-                  height: 55,
-                  width: 180,
-                  //padding: EdgeInsets.all(20.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      labelText: "BAC Threshold",
-                      hintText: "$threshold", 
-                      border: OutlineInputBorder(),
+                    Container(
+                      //Weight entry
+                      height: 55,
+                      width: 120,
+                      //padding: EdgeInsets.all(20.0),
+                      child: TextField(
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          fillColor: Colors.white12,
+                          filled: true,
+                          labelText: "Weight (lbs)",
+                          hintText: "$weightInLbs lbs",
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType:
+                            TextInputType.numberWithOptions(decimal: false),
+                        textAlign: TextAlign.center,
+                        onChanged: (text) {
+                          weight = double.parse(text) *
+                              453.592; //convert input from lbs to grams first
+                          weightInLbs = double.parse(text);
+                        },
+                      ),
                     ),
-                    //maxLength: 4,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (text){
-                      threshold = double.parse(text);
-                    },
-                  ),
-                ),
-              ],),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
+                    Column(
+                      children: <Widget>[
+                        
+                        Container(
+                          //BAC threshold entry
+                          height: 55,
+                          width: 180,
+                          //padding: EdgeInsets.all(20.0),
+                          child: TextField(
+                            decoration: InputDecoration(
+                              fillColor: Colors.white12,
+                                  filled: true,
+                              labelText: "BAC Threshold",
+                              hintText: "$threshold",
+                              border: OutlineInputBorder(),
+                            ),
+                            //maxLength: 4,
+                            textAlign: TextAlign.center,
+                            keyboardType:
+                                TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (text) {
+                              threshold = double.parse(text);
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          "This should be 0.08 in the majority of the USA, or 0.0 if you're under 21.\nAlways check your local laws.\n",
+                          textAlign: TextAlign.center,
+                        ),
 
-                  RaisedButton( //Select MALE as gender!
-                    //icon: Icon(Icons.arrow_left),
-                    color: Colors.blueGrey,
-                    child: const Text("Male"),
-                    onPressed: (){
-                      genderConst = .68;
-                    },
-                  ),
+                      ],
+                    ),
 
-                  RaisedButton( //Select FEMALE as gender!
-                      //icon: Icon(Icons.arrow_right),
-                      color: Colors.pinkAccent,
-                      child: const Text("Female"),
-                      onPressed: (){
-                        genderConst = .55;
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        RaisedButton(
+                          //Select MALE as gender!
+                          //icon: Icon(Icons.arrow_left),
+                          color: Colors.blueGrey,
+                          child: const Text("Male"),
+                          onPressed: () {
+                            genderConst = .68;
+                          },
+                        ),
+                        RaisedButton(
+                          //Select FEMALE as gender!
+                          //icon: Icon(Icons.arrow_right),
+                          color: Colors.pinkAccent,
+                          child: const Text("Female"),
+                          onPressed: () {
+                            genderConst = .55;
+                          },
+                        ),
+                      ],
+                    ),
+
+                    RaisedButton(
+                      //RESET DRINKS LIST!
+                      //icon: Icon(Icons.arrow_left),
+                      color: Colors.redAccent,
+                      child: const Text("Reset drinks list"),
+                      onPressed: () {
+                        drinksList.clear();
+                        presetDrinksList.clear();
                       },
                     ),
-                ],
+                  ],
+                ),
               ),
-
-              RaisedButton( //RESET DRINKS LIST!
-                    //icon: Icon(Icons.arrow_left),
-                    color: Colors.redAccent,
-                    child: const Text("Reset drinks list"),
-                    onPressed: (){
-                      drinksList.clear();
-                      presetDrinksList.clear();
-                    },
-                  ),
-
-            ],
-          ),
-        ),
-      ),
-    );
-  });
+            ),
+          );
+        });
 }
 
-class DrinkApp extends StatefulWidget{
+class DrinkApp extends StatefulWidget {
   @override
   _DrinkAppState createState() => new _DrinkAppState();
 }
 
 class _DrinkAppState extends State<DrinkApp> {
-
   //Timer for keeping the timer up-to-date. Thanks Gunter from Stackoverflow.
   Timer timer;
-  
+
   //Notification thing
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
 
   @override
-  void initState() { //initState run on startup
+  void initState() {
+    //initState run on startup
     super.initState();
 
     displayedNotification = true;
 
-    var initializationSettingsAndroid = new AndroidInitializationSettings('@mipmap/ic_launcher');
+    var initializationSettingsAndroid =
+        new AndroidInitializationSettings('@mipmap/ic_launcher');
     var initializationSettingsIOS = new IOSInitializationSettings();
-    var initializationSettings = new InitializationSettings(initializationSettingsAndroid, initializationSettingsIOS);
+    var initializationSettings = new InitializationSettings(
+        initializationSettingsAndroid, initializationSettingsIOS);
     flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
 
-    flutterLocalNotificationsPlugin.initialize(initializationSettings);//, selectNotification: onSelectNotification);
+    flutterLocalNotificationsPlugin.initialize(
+        initializationSettings); //, selectNotification: onSelectNotification);
 
     //scheduleNotification();
 
@@ -250,6 +281,7 @@ class _DrinkAppState extends State<DrinkApp> {
     //setup the timer
     timer = Timer.periodic(Duration(seconds: 1), (Timer t) => updateClock());
   }
+
   @override
   void dispose() {
     timer?.cancel();
@@ -262,34 +294,39 @@ class _DrinkAppState extends State<DrinkApp> {
   String _drinksString = "";
 
   //onselectnotification
-  Future onSelectNotification(String payload) async{
+  Future onSelectNotification(String payload) async {
     print("Notification payload: $payload");
   }
 
-  Future scheduleNotification() async{
-   var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'your channel id', 'your channel name', 'your channel description',
-    importance: Importance.Max, priority: Priority.High, ticker: 'ticker');
-var iOSPlatformChannelSpecifics = IOSNotificationDetails();
-var platformChannelSpecifics = NotificationDetails(
-    androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
-await flutterLocalNotificationsPlugin.show(
-    0, 'You can drive!', 'Your BAC has hit $threshold.', platformChannelSpecifics,
-    payload: 'item x');
+  Future scheduleNotification() async {
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'your channel id', 'your channel name', 'your channel description',
+        importance: Importance.Max, priority: Priority.High, ticker: 'ticker');
+    var iOSPlatformChannelSpecifics = IOSNotificationDetails();
+    var platformChannelSpecifics = NotificationDetails(
+        androidPlatformChannelSpecifics, iOSPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin.show(0, 'You can drive!',
+        'Your BAC has hit $threshold.', platformChannelSpecifics,
+        payload: 'item x');
   }
 
   //add custom drink to array
-  void addDrink() 
-  {  
+  void addDrink() {
     //make sure all fields are filled in
-    if(drinkName == null || drinkABV == null || drinkVolume == null) 
-    {
-      return(null);
+    if (drinkName == null || drinkABV == null || drinkVolume == null) {
+      return (null);
+    }
+
+    //make sure user has supplied information
+    if (weight == 0 || weight == null || genderConst == null) {
+      weight = 90;
+      Navigator.push(context, SettingsPage());
+      return (null);
     }
 
     var now = new DateTime.now();
     var abvDouble = double.parse(drinkABV);
-    var volumeDouble = double.parse(drinkVolume); 
+    var volumeDouble = double.parse(drinkVolume);
 
     drinksList.add(new Drink(drinkName, abvDouble, volumeDouble, now));
 
@@ -297,23 +334,20 @@ await flutterLocalNotificationsPlugin.show(
   }
 
   //save custom drink to presets
-  void saveDrink()
-  {
+  void saveDrink() {
     //make sure all fields are filled in
-    if(drinkName == null || drinkABV == null || drinkVolume == null) 
-    {
-      return(null);
+    if (drinkName == null || drinkABV == null || drinkVolume == null) {
+      return (null);
     }
 
     var now = new DateTime.now();
     var abvDouble = double.parse(drinkABV);
-    var volumeDouble = double.parse(drinkVolume); 
+    var volumeDouble = double.parse(drinkVolume);
 
     presetDrinksList.add(new Drink(drinkName, abvDouble, volumeDouble, now));
   }
 
-  void addDrinkFromPresets(int index)
-  {
+  void addDrinkFromPresets(int index) {
     presetDrinksList[index].time = DateTime.now();
 
     drinksList.add(presetDrinksList[index]);
@@ -321,13 +355,11 @@ await flutterLocalNotificationsPlugin.show(
   }
 
   //like updateInfo
-  void updateClock()
-  {
-   //check the timer
+  void updateClock() {
+    //check the timer
 
     //if we've already passed soberTime
-    if(DateTime.now().isAfter(soberTime))
-    {
+    if (DateTime.now().isAfter(soberTime.add(Duration(seconds: -2)))) { //I stuck a delay of -2 seconds in there because when the app boots the soberTime is after DateTime.now() by a fraction of a second
       //print("WE ARE SOBER");
 
       //set the output
@@ -336,92 +368,85 @@ await flutterLocalNotificationsPlugin.show(
       setState(() => titleBarText = "");
       setState(() => _drinksString = "");
 
-      if(!displayedNotification)
-      {
+      if (!displayedNotification) {
         displayedNotification = true;
         print("NOTIFICATION");
         scheduleNotification();
       }
-    }
+    } 
     else //if soberTime is yet to come thus we're hammered
     {
+      if(DateTime.now().isAfter(soberTime.add(Duration(seconds: 5))))
+      {
+        print("st: "+soberTime.toString() + "\ndtNOW: " + DateTime.now().toString());
+      }
       //print("NOT SOBER");
       displayedNotification = false;
 
       //set clock
       Duration dur = soberTime.difference(DateTime.now());
-      setState(() => _timeString = dur.toString().substring(0,7));
+      setState(() => _timeString = dur.toString().substring(0, 7));
 
       //determine the totalBAC (sum of all Drink's BACs)
       double totalBAC = 0;
 
       //for each current drink
-      for(int i = 0; i < drinksList.length; i++)
-      {
+      for (int i = 0; i < drinksList.length; i++) {
         //calculate the BAC of this drink
         double thisBAC = drinksList[i].getBAC();
 
         //check if the BAC is <= 0. If it is, we need to remove it from the list of drinks!
-        if(thisBAC <= 0)
-        {
+        if (thisBAC <= 0) {
           //print("REMOVE DRINK");
           drinksList.removeAt(i);
           i--; //decrement i so we don't skip the next drink
-        }
-        else //if the BAC is > 0, we need to add it to the total
+        } else //if the BAC is > 0, we need to add it to the total
         {
           //print("ADD DRINK");
-          totalBAC += thisBAC; 
+          totalBAC += thisBAC;
         }
       }
 
       setState(() => _outputBAC = totalBAC.toStringAsFixed(3) + "%");
 
       //set the '(# drinks)' text
-      if(drinksList.length == 1)
-      {
+      if (drinksList.length == 1) {
         setState(() => _drinksString = "(1 drink)");
-      }
-      else //drinksList is greater than 1
+      } else //drinksList is greater than 1
       {
-        setState(() => _drinksString = "(" + drinksList.length.toString() + " drinks)");
+        setState(() =>
+            _drinksString = "(" + drinksList.length.toString() + " drinks)");
       }
     }
-
   }
 
-  void updateInfo()
-  {
-    
+  void updateInfo() {
     //determine the totalBAC (sum of all Drink's BACs)
     double totalBAC = 0;
-    for(int i = 0; i < drinksList.length; i++)
-    {
+    for (int i = 0; i < drinksList.length; i++) {
       totalBAC += drinksList[i].getBAC();
       print("totalbac: $totalBAC");
     }
-    
 
-    if(totalBAC > threshold) //If our BAC is greater than the threshold, print BAC information
+    if (totalBAC >
+        threshold) //If our BAC is greater than the threshold, print BAC information
     {
       //update the percentage immediately
       //setState(() => _outputBAC = totalBAC.toStringAsFixed(10) + "%");
-      
 
       //update soberTime
-      int mins = (((totalBAC-threshold)/.015)*60).round();
+      int mins = (((totalBAC - threshold) / .015) * 60).round();
       soberTime = DateTime.now().add(Duration(minutes: mins));
 
       //update the title bar to display the sober time
-      setState(() => titleBarText = "- " + soberTime.toString().substring(11,16));
+      setState(
+          () => titleBarText = "- " + soberTime.toString().substring(11, 16));
 
       updateClock();
-    }
-    else //totalBAC is under threshold
+    } else //totalBAC is under threshold
     {
       //set outputBAC to empty string
       //setState(() => _outputBAC = "");
-      
 
       //update soberTime to now
       soberTime = DateTime.now();
@@ -434,277 +459,322 @@ await flutterLocalNotificationsPlugin.show(
 
     //save data
     saveData();
-
   }
 
   final String drinksListKey = 'com.alexisraelov.canidrive.activeDrinks';
-  final String favoritesKey = 'com.alexisraelov.canidrive.favorites'; // maybe use your domain + appname
+  final String favoritesKey =
+      'com.alexisraelov.canidrive.favorites'; // maybe use your domain + appname
 
-    void saveData() async
+  void saveData() async {
+    print("SAVING DATA");
+    //initialize sharedprefs object
+    SharedPreferences sp = await SharedPreferences.getInstance();
+
+    //save the drinksList array
+    sp.setString(drinksListKey, json.encode(drinksList));
+
+    //save the presetDrinksList array
+    sp.setString(favoritesKey, json.encode(presetDrinksList));
+
+    //save weight, threshold, sex
+    sp.setDouble('threshold', threshold);
+    sp.setDouble('weight', weight);
+    sp.setDouble('genderConst', genderConst);
+
+    print("DATA SAVED");
+  }
+
+  void loadData() async {
+    print("LOADING DATA");
+    SharedPreferences sp = await SharedPreferences.getInstance();
+
+    //load drinksList
+    json
+        .decode(sp.getString(drinksListKey))
+        .forEach((map) => drinksList.add(new Drink.fromJson(map)));
+
+    //load presetDrinksList
+    json
+        .decode(sp.getString(favoritesKey))
+        .forEach((map) => presetDrinksList.add(new Drink.fromJson(map)));
+
+    //load weight, threshold, sex
+    threshold = double.parse(sp.getDouble('threshold').toStringAsFixed(2));
+    weight = double.parse(sp.getDouble('weight').toStringAsFixed(1));
+    genderConst = sp.getDouble('genderConst');
+
+    if (weight == null || genderConst == null) //if these settings don't exist
     {
-      print("SAVING DATA");
-      //initialize sharedprefs object
-      SharedPreferences sp = await SharedPreferences.getInstance();
-      
-      //save the drinksList array
-      sp.setString(drinksListKey, json.encode(drinksList));
-
-      //save the presetDrinksList array
-      sp.setString(favoritesKey, json.encode(presetDrinksList));
-
-      //save weight, threshold, sex
-      sp.setDouble('threshold', threshold);
-      sp.setDouble('weight', weight);
-      sp.setDouble('genderConst', genderConst);
-
-      print("DATA SAVED");
+      //pull up the settings page
+      Navigator.push(context, SettingsPage());
     }
 
-    void loadData() async
-    {
-      print("LOADING DATA");
-      SharedPreferences sp = await SharedPreferences.getInstance();
-      
-      //load drinksList
-      json
-         .decode(sp.getString(drinksListKey))
-         .forEach((map) => drinksList.add(new Drink.fromJson(map)));
-
-      //load presetDrinksList
-      json
-         .decode(sp.getString(favoritesKey))
-         .forEach((map) => presetDrinksList.add(new Drink.fromJson(map)));
-
-      //load weight, threshold, sex
-      threshold = double.parse(sp.getDouble('threshold').toStringAsFixed(2));
-      weight = double.parse(sp.getDouble('weight').toStringAsFixed(1));
+    if (weight != null) {
       weightInLbs = weight / 453.592;
-      genderConst = sp.getDouble('genderConst');
-
-      //update the info
-      updateInfo();
-
-      print("DATA LOADED");
     }
 
+    //update the info
+    updateInfo();
+
+    print("DATA LOADED");
+  }
 
   //VISUAL ASSEMBLY
   @override
   Widget build(BuildContext context) {
-   return new MaterialApp(
+    return new MaterialApp(
       title: "Can I Drive?",
       home: new Scaffold(
-        appBar: new AppBar(
+        //backgroundColor: Colors.transparent,
+        appBar: AppBar(
           title: new Text("Can I Drive? $titleBarText"),
-          backgroundColor: Color(0xff983351), 
+          backgroundColor: Color(0xff983351),
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.settings),
               color: Colors.white,
-              onPressed: (){
+              onPressed: () {
                 Navigator.push(context, SettingsPage());
               },
             ),
           ],
         ),
         drawer: Drawer(
-          child: 
-            ListView.separated(
-              separatorBuilder: (context, index) => Divider(
-                color: Colors.black,
-              ),
-              itemCount: drinksList.length,
-              itemBuilder: (BuildContext ctxt, int index) {
-                return new Dismissible(
-                  key: new Key(drinksList[index].getInfo() + drinksList.length.toString()),
-                  onDismissed: (direction){
+          child: ListView.separated(
+            separatorBuilder: (context, index) => Divider(
+                  color: Colors.black,
+                ),
+            itemCount: drinksList.length,
+            itemBuilder: (BuildContext ctxt, int index) {
+              return new Dismissible(
+                key: new Key(
+                    drinksList[index].getInfo() + drinksList.length.toString()),
+                onDismissed: (direction) {
+                  //when swiped, remove the drink
+                  //setState(() => drinksList.removeAt(index));
+                  setState(() {
+                    drinksList.removeAt(index);
+                    displayedNotification = true;
+                  });
 
-                    //when swiped, remove the drink
-                    //setState(() => drinksList.removeAt(index));
-                    setState(() {
-                      drinksList.removeAt(index);
-                      displayedNotification = true;
-                    });
-
-                    //check for updates
-                    updateInfo();
-                  },
-                  background: new Container(
-                    color: Colors.red,
-                  ),
-                  child: new ListTile(
-                    title: new Text(drinksList[index].getInfo()),
-                  ),
-                );
-              },
-            ),
+                  //check for updates
+                  updateInfo();
+                },
+                background: new Container(
+                  color: Colors.red,
+                ),
+                child: new ListTile(
+                  title: new Text(drinksList[index].getInfo()),
+                ),
+              );
+            },
+          ),
         ),
         body: OrientationBuilder(builder: (context, orientation) {
-
           //here we make an orientation thing so we can find the size
           //I'm not really sure why this but thanks Deven Joshi for your Flutter guide code
           final size = MediaQuery.of(context).size;
-          
-          return Container(  //MAIN CONTAINER
-          alignment: Alignment.center,
-          color: const Color(0xfffffbfa),
-          child: Column( //Main column with data on top and menu on bottom
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[ 
 
-              Container( //INFO CONTAINER
-                height: size.height / 5,
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      "$_outputBAC",
-                      style: TextStyle(fontSize: 40),
-                    ),
-                    Text(
-                      "$_timeString",
-                      style: TextStyle(fontSize: 25),
-                    ),
-                    Text(
-                      "$_drinksString",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ],
-                ),
+          return Container(
+            //MAIN CONTAINER
+            decoration: new BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/background.png"),
+                fit: BoxFit.cover,
               ),
+            ),
+            alignment: Alignment.center,
+            //color: const Color(0xfffffbfa),
+            child: Column(
+              //Main column with data on top and menu on bottom
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                Container(
+                  //INFO CONTAINER
 
-              Container( //MENU CONTAINER
-                height: size.height / 2,
-                //width: size.width,
-                child: PageView(
-                  scrollDirection: Axis.horizontal,
-                  //mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: <Widget>[
-                    Container(
-                      child: Column( //LEFT MENU Drink Input (TEXT FIELDS AND BUTTON)
-                      //mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: <Widget>[
-                        Container( //Drink name entry
-                          height: 45,
-                          width: 120,
-                          //padding: EdgeInsets.only(bottom: 0.0),
-                          child: TextField(
-                            textCapitalization: TextCapitalization.words,
-                            decoration: InputDecoration(
-                              labelText: "Drink name",
-                              border: OutlineInputBorder(),
-                            ),
-                            //maxLength: 12,
-                            textAlign: TextAlign.center,
-                            onChanged: (text){
-                              drinkName = text;
-                            },
-                          ),
-                        ),
+                  height: (size.height - appBarHeight) * .3,
+                  child: Column(
+                    children: <Widget>[
 
-                        Container( //Drink ABV entry
-                          height: 45,
-                          width: 120,
-                          //padding: EdgeInsets.all(20.0),
-                          child: TextField(
-                            decoration: InputDecoration(
-                              labelText: "ABV",
-                              border: OutlineInputBorder(),
-                            ),
-                            //maxLength: 4,
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            onChanged: (text){
-                              drinkABV = text;
-                            },
-                          ),
-                        ),
-
-                        Container( //Drink Volume entry
-                          height: 45,
-                          width: 120,
-                          //padding: EdgeInsets.all(20.0),
-                          child: TextField(
-                            decoration: InputDecoration(
-                              labelText: "Volume",
-                              border: OutlineInputBorder(),
-                            ),
-                            //maxLength: 4,
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            onChanged: (text){
-                              drinkVolume = text;
-                            },
-                          ),
-                        ),
-
-                        Row(
+                      SizedBox(height: 20),
+                      Text(
+                        "$_outputBAC",
+                        style: TextStyle(fontSize: 40),
+                      ),
+                      Text(
+                        "$_timeString",
+                        style: TextStyle(fontSize: 25),
+                      ),
+                      Text(
+                        "$_drinksString",
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  //MENU CONTAINER
+                  height: (size.height - appBarHeight) * .6,
+                  child: PageView(
+                    scrollDirection: Axis.horizontal,
+                    children: <Widget>[
+                      Container(
+                        width: size.width * .8,
+                        padding: EdgeInsets.only(right: size.width * .2, left: size.width * .2),
+                        child: ListView(
                           
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          
+                          //LEFT MENU Drink Input (TEXT FIELDS AND BUTTON)
+                          //mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: <Widget>[
-                            Container( //Add drink button
-                              width: 200,
-                              height: 40,
-                              child: RaisedButton(
-                                child: Text("Add Drink"),
-                                color: const Color(0xffFEEAE6),
-                                elevation: 2.0,
-                                onPressed: ()
-                                {
-                                  addDrink();
+                            Container(
+                              //Drink name entry
+                              height: 45,
+                              width: 120,
+                              //padding: EdgeInsets.only(bottom: 0.0),
+                              child: TextField(
+                                textCapitalization: TextCapitalization.words,
+                                decoration: InputDecoration(
+                                  fillColor: Colors.white12,
+                                  filled: true,
+                                  labelText: "Drink name",
+                                  border: OutlineInputBorder(),
+                                ),
+                                //maxLength: 12,
+                                textAlign: TextAlign.center,
+                                onChanged: (text) {
+                                  drinkName = text;
                                 },
                               ),
                             ),
-
-                            Container( //Favorite drink button
-                              width: 40,
-                              height: 40,
-                              child: RaisedButton(
-                                padding: EdgeInsets.all(9),
-                                child: Icon(Icons.star),
-                                color: const Color(0xfff9f923),
-                                elevation: 2.0,
-                                onPressed: ()
-                                {
-                                  saveDrink();
+                            SizedBox(height: 20),
+                            Container(
+                              //Drink ABV entry
+                              height: 45,
+                              width: 120,
+                              //padding: EdgeInsets.all(20.0),
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  fillColor: Colors.white12,
+                                  filled: true,
+                                  labelText: "ABV",
+                                  border: OutlineInputBorder(),
+                                ),
+                                //maxLength: 4,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true),
+                                onChanged: (text) {
+                                  drinkABV = text;
                                 },
                               ),
                             ),
-                        ],),
-
-                        Text("Swipe for favorites →"),
-
-                      ],
-                    ),
-                    ),
-
-                    Container( //RIGHT MENU Drink List (holds preset Drinks)
-                      //width: 540,
-                      child:ListView.separated(
-                        separatorBuilder: (context, index) => Divider(
-                        color: Colors.black,
+                            SizedBox(height: 20),
+                            Container(
+                              //Drink Volume entry
+                              height: 45,
+                              width: 120,
+                              //padding: EdgeInsets.all(20.0),
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  fillColor: Colors.white12,
+                                  filled: true,
+                                  labelText: "Volume (ml)",
+                                  border: OutlineInputBorder(),
+                                ),
+                                //maxLength: 4,
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                onChanged: (text) {
+                                  drinkVolume = text;
+                                },
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                  //Add drink button
+                                  width: 200,
+                                  height: 40,
+                                  child: RaisedButton(
+                                    child: Text("Add Drink"),
+                                    color: const Color(0xffFEEAE6),
+                                    elevation: 2.0,
+                                    onPressed: () {
+                                      addDrink();
+                                    },
+                                  ),
+                                ),
+                                Container(
+                                  //Favorite drink button
+                                  width: 40,
+                                  height: 40,
+                                  child: RaisedButton(
+                                    padding: EdgeInsets.all(9),
+                                    child: Icon(Icons.star),
+                                    color: const Color(0xfff9f923),
+                                    elevation: 2.0,
+                                    onPressed: () {
+                                      saveDrink();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 20),
+                            Text("Swipe for favorites →",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                )),
+                          ],
+                        ),
+                        
                       ),
-                     
-                      itemCount: presetDrinksList.length,
-                      itemBuilder: (BuildContext ctxt, int index) {
-                        return ListTile(
-                          title: Text(presetDrinksList[index].getPresetInfo()),
-                          onTap: (){
-                            addDrinkFromPresets(index);
-                          },
+                      Container(
+                        //RIGHT MENU Drink List (holds preset Drinks)
+                        //width: 540,
+                        //height: 200,
 
-                          onLongPress: (){
-                            presetDrinksList.removeAt(index);
-                          },
-                        );
-                      },
+                        child: Column(
+                          children: <Widget>[
+                            Text(
+                              "Favorites",
+                              style: TextStyle(
+                                fontSize: 20,
+                              ),
+                            ),
+                            Expanded(
+                              child: ListView.separated(
+                    
+                                separatorBuilder: (context, index) => Divider(
+                                      color: Colors.black,
+                                    ),
+                                shrinkWrap: true,
+                                itemCount: presetDrinksList.length,
+                                itemBuilder: (BuildContext ctxt, int index) {
+                                  return ListTile(
+                                    title: Text(presetDrinksList[index]
+                                        .getPresetInfo()),
+                                    onTap: () {
+                                      addDrinkFromPresets(index);
+                                    },
+                                    onLongPress: () {
+                                      presetDrinksList.removeAt(index);
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ), //widgets
+              ],
+            ), //widgets
           );
         }),
       ),
