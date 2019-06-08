@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-//import 'package:async/async.dart';
 import 'dart:async';
 import 'dart:convert' show json;
 import 'package:flutter/rendering.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-//import 'package:carousel_pro/carousel_pro.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 
 //void main() => runApp(new DrinkApp());
 
@@ -66,6 +65,8 @@ class Drink {
     double bac = (((abv * volume * .789) / (weight * genderConst))) -
         (hoursPassed * (.015));
 
+    print("BAC of drink: " + name + " = " + bac.toString());
+
     //return BAC
     return bac;
   }
@@ -110,24 +111,18 @@ final double appBarHeight = MyAppBar().preferredSize.height;
 class SettingsPage extends MaterialPageRoute<Null> {
   SettingsPage()
       : super(builder: (BuildContext ctx) {
+        SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
           return Scaffold(
             resizeToAvoidBottomPadding: false,
             resizeToAvoidBottomInset: false,
             backgroundColor: Colors.transparent,
             appBar: AppBar(
               title: Text("Settings"),
-              backgroundColor: Color(0xff983351),
+              backgroundColor: Color(0xff00d368),
               elevation: 1.0,
-              /*
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.close),
-            onPressed: (){
-              Navigator.pop(ctx); 
-            },
-          ),
-        ],
-        */
             ),
             body: Center(
               child: Container(
@@ -233,7 +228,7 @@ class SettingsPage extends MaterialPageRoute<Null> {
                       child: const Text("Reset drinks list"),
                       onPressed: () {
                         drinksList.clear();
-                        presetDrinksList.clear();
+                        //presetDrinksList.clear();
                       },
                     ),
                   ],
@@ -310,6 +305,22 @@ class _DrinkAppState extends State<DrinkApp> {
         payload: 'item x');
   }
 
+  void removeDeadDrinks()
+  {
+    if(drinksList.length > 0) //if there are multiple drinks, remove any that are out of our system
+    {
+      for(int i = drinksList.length - 1; i >= 0; i--)
+      {
+        if(drinksList[i].getBAC() <= .00001)
+        {
+          print("remove drink: " + drinksList[i].name);
+          drinksList.removeAt(i);
+          
+        }
+      }
+    }
+  }
+
   //add custom drink to array
   void addDrink() {
     //make sure all fields are filled in
@@ -323,6 +334,8 @@ class _DrinkAppState extends State<DrinkApp> {
       Navigator.push(context, SettingsPage());
       return (null);
     }
+
+    removeDeadDrinks();
 
     var now = new DateTime.now();
     var abvDouble = double.parse(drinkABV);
@@ -349,7 +362,7 @@ class _DrinkAppState extends State<DrinkApp> {
 
   void addDrinkFromPresets(int index) {
     presetDrinksList[index].time = DateTime.now();
-
+    removeDeadDrinks();
     drinksList.add(presetDrinksList[index]);
     updateInfo();
   }
@@ -376,10 +389,6 @@ class _DrinkAppState extends State<DrinkApp> {
     } 
     else //if soberTime is yet to come thus we're hammered
     {
-      if(DateTime.now().isAfter(soberTime.add(Duration(seconds: 5))))
-      {
-        print("st: "+soberTime.toString() + "\ndtNOW: " + DateTime.now().toString());
-      }
       //print("NOT SOBER");
       displayedNotification = false;
 
@@ -396,15 +405,10 @@ class _DrinkAppState extends State<DrinkApp> {
         double thisBAC = drinksList[i].getBAC();
 
         //check if the BAC is <= 0. If it is, we need to remove it from the list of drinks!
-        if (thisBAC <= 0) {
-          //print("REMOVE DRINK");
-          drinksList.removeAt(i);
-          i--; //decrement i so we don't skip the next drink
-        } else //if the BAC is > 0, we need to add it to the total
+        if(thisBAC > 0)
         {
-          //print("ADD DRINK");
           totalBAC += thisBAC;
-        }
+        }   
       }
 
       setState(() => _outputBAC = totalBAC.toStringAsFixed(3) + "%");
@@ -428,8 +432,7 @@ class _DrinkAppState extends State<DrinkApp> {
       print("totalbac: $totalBAC");
     }
 
-    if (totalBAC >
-        threshold) //If our BAC is greater than the threshold, print BAC information
+    if (totalBAC > threshold) //If our BAC is greater than the threshold, print BAC information
     {
       //update the percentage immediately
       //setState(() => _outputBAC = totalBAC.toStringAsFixed(10) + "%");
@@ -522,13 +525,17 @@ class _DrinkAppState extends State<DrinkApp> {
   //VISUAL ASSEMBLY
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
     return new MaterialApp(
       title: "Can I Drive?",
       home: new Scaffold(
         //backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: new Text("Can I Drive? $titleBarText"),
-          backgroundColor: Color(0xff983351),
+          backgroundColor: Color(0xff00D368),
           actions: <Widget>[
             IconButton(
               icon: Icon(Icons.settings),
