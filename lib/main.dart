@@ -63,7 +63,7 @@ class Drink {
 
     //calculate BAC
     double bac = (((abv * volume * .789) / (weight * genderConst))) -
-        (hoursPassed * (.015));
+        ((hoursPassed * (.015))/drinksList.length); //divide by drinksList length to accurately lower bac level
 
     print("BAC of drink: " + name + " = " + bac.toString());
 
@@ -376,8 +376,8 @@ class _DrinkAppState extends State<DrinkApp> {
       //print("WE ARE SOBER");
 
       //set the output
-      setState(() => _outputBAC = "0%");
-      setState(() => _timeString = "You're sober, mate");
+      setState(() => _outputBAC = ""); //was 0%
+      setState(() => _timeString = "You can drive!"); //was "You're sober mate!"
       setState(() => titleBarText = "");
       setState(() => _drinksString = "");
 
