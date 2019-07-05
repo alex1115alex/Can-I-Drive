@@ -330,7 +330,6 @@ class _DrinkAppState extends State<DrinkApp> {
 
     //make sure user has supplied information
     if (weight == 0 || weight == null || genderConst == null) {
-      weight = 90;
       Navigator.push(context, SettingsPage());
       return (null);
     }
@@ -361,6 +360,18 @@ class _DrinkAppState extends State<DrinkApp> {
   }
 
   void addDrinkFromPresets(int index) {
+
+    //make sure all fields are filled in
+    if (drinkName == null || drinkABV == null || drinkVolume == null) {
+      return (null);
+    }
+
+    //make sure user has supplied information
+    if (weight == 0 || weight == null || genderConst == null) {
+      Navigator.push(context, SettingsPage());
+      return (null);
+    }
+
     presetDrinksList[index].time = DateTime.now();
     removeDeadDrinks();
     drinksList.add(presetDrinksList[index]);
